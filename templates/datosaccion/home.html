@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CraftMAPShip - Mapa Colaborativo de Artesanías y Oficios</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #C86C3A;
+            --color-secondary: #8B5A3C;
+            --color-accent: #7A9B7F;
+            --color-light: #F5EFE6;
+            --color-warm: #E8D5C4;
+            --color-dark: #3A3226;
+            --color-text: #4A4237;
+        }
+
+        body {
+            font-family: 'Georgia', 'Palatino', serif;
+            color: var(--color-text);
+            background-color: var(--color-light);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Trebuchet MS', 'Lucida Grande', sans-serif;
+            color: var(--color-secondary);
+            font-weight: 600;
+        }
+
+        /* Navegación */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        nav.scrolled {
+            padding: 0.5rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--color-text);
+            transition: color 0.3s;
+            font-size: 0.95rem;
+        }
+
+        nav a:hover {
+            color: var(--color-primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            margin-top: 80px;
+            background: linear-gradient(135deg, var(--color-warm) 0%, var(--color-light) 100%);
+            padding: 5rem 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--color-primary);
+        }
+
+        .hero h1 {
+            font-size: 2.8rem;
+            margin-bottom: 1rem;
+            color: var(--color-secondary);
+            animation: fadeInDown 1s ease;
+        }
+
+        .hero .subtitle {
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            font-style: italic;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease 0.3s both;
+        }
+
+        .hero .tagline {
+            font-size: 1.1rem;
+            color: var(--color-text);
+            max-width: 700px;
+            margin: 0 auto;
+            animation: fadeInUp 1s ease 0.6s both;
+        }
+
+        /* Contenedor general */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Secciones */
+        section {
+            /* padding: 4rem 2rem; */
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInSection 0.8s ease forwards;
+        }
+
+        section:nth-child(even) {
+            background-color: white;
+        }
+
+        section h2 {
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        section h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: var(--color-primary);
+        }
+
+        .intro-text, .objectives-text, .how-text {
+            max-width: 900px;
+            margin: 2rem auto;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        /* Objetivos */
+
+        .objective-card {
+            background: var(--color-warm);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .objective-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: var(--color-primary);
+        }
+
+        .objective-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--color-primary);
+        }
+
+        /* Mapa */
+        #map {
+            height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            margin: 2rem auto;
+            max-width: 1000px;
+        }
+
+        /* CTA Participación */
+        .cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: white;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .cta-section h2 {
+            color: white;
+        }
+
+        .cta-section h2::after {
+            background: white;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: var(--color-primary);
+            padding: 1rem 3rem;
+            margin-top: 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            background: var(--color-light);
+        }
+
+        /* Ejemplos de artesanías */
+
+        .craft-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid var(--color-warm);
+            transition: all 0.3s;
+        }
+
+        .craft-item:hover {
+            border-color: var(--color-accent);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .craft-card {
+            background: white;
+            border: 2px solid var(--color-warm);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+            height: 100%;
+        }
+
+        .craft-card:hover {
+            border-color: var(--color-accent);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .craft-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Sobre el proyecto */
+        .about-content {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: var(--color-warm);
+            padding: 3rem;
+            border-radius: 10px;
+            border-left: 5px solid var(--color-primary);
+        }
+
+        .about-content p {
+            margin-bottom: 1rem;
+            font-size: 1.05rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--color-dark);
+            color: var(--color-light);
+            padding: 3rem 2rem 1rem;
+            text-align: center;
+        }
+
+        footer .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        footer h3 {
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        footer a {
+            color: var(--color-warm);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        footer a:hover {
+            color: var(--color-primary);
+        }
+
+        footer .copyright {
+            border-top: 1px solid var(--color-secondary);
+            padding-top: 1rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* Animaciones */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInSection {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            section h2 {
+                font-size: 1.8rem;
+            }
+
+            #map {
+                height: 350px;
+            }
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            40% {
+                transform: translateX(-50%) translateY(-10px);
+            }
+            60% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+        }
+        .legend {
+            background:white;
+            line-height:18px;
+            color:#555;
+            padding:6px 8px;
+            box-shadow:0 0 15px rgba(0,0,0,0.2);
+            border-radius:5px;
+        }
+        .legend i {
+            width:18px;
+            height:18px;
+            float:left;
+            margin-right:8px;
+            opacity:0.7;
+        }
+        .circle-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <nav id="navbar">
+        <div class="container">
+            <a href="#" class="logo">🗺️ CraftMAPShip</a>
+            <ul>
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#objetivos">Objetivos</a></li>
+                <li><a href="#mapa">Mapa</a></li>
+                <li><a href="#participa">Participa</a></li>
+                <li><a href="#ejemplos">Ejemplos</a></li>
+                <li><a href="#sobre">Sobre el proyecto</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="hero" id="inicio">
+        <h1>CraftMAPShip</h1>
+        <h2>Mapa Colaborativo de Artesanías y Oficios</h2>
+        <p class="subtitle">Un proyecto dentro del taller Datos para la Acción</p>
+        <p class="tagline">Preservando la memoria de los oficios tradicionales y artesanías de nuestros pueblos</p>
+    </section>
+
+    <section id="introduccion">
+        <div class="container">
+            <h2>¿Qué es CraftMAPShip?</h2>
+            <div class="intro-text">
+                <p>CraftMAPShip es un proyecto de cartografía colaborativa que busca crear un <strong>mapa interactivo y participativo</strong> para geolocalizar y documentar las artesanías y oficios tradicionales de nuestro territorio.</p>
+                <p>El proyecto pone especial atención en los <strong>pequeños pueblos rurales</strong> en riesgo de despoblación y olvido, donde muchos de estos saberes ancestrales están desapareciendo sin dejar rastro.</p>
+                <p>A través de este mapa colaborativo, queremos preservar no solo los oficios que aún perviven, sino también la memoria de aquellos que ya han desaparecido, creando un archivo vivo de nuestra cultura material y artesanal.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="objetivos">
+        <div class="container">
+            <h2>Objetivos del Proyecto</h2>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="objective-card">
+                        <h3>🏺 Preservación Cultural</h3>
+                        <p>Documentar y conservar el patrimonio inmaterial de oficios y artesanías antes de que desaparezcan.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="objective-card">
+                        <h3>🤝 Participación Comunitaria</h3>
+                        <p>Involucrar a la ciudadanía en la construcción colectiva del conocimiento local.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="objective-card">
+                        <h3>📚 Memoria Histórica</h3>
+                        <p>Recuperar la historia de oficios desaparecidos a través de testimonios, fotografías y documentos.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="objective-card">
+                        <h3>🌱 Revitalización Rural</h3>
+                        <p>Visibilizar el valor cultural y económico de las artesanías en zonas rurales.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="objective-card">
+                        <h3>🔓 Accesibilidad Abierta</h3>
+                        <p>Proporcionar datos abiertos para investigadores, instituciones y ciudadanía.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="objective-card">
+                        <h3>🗺️ Conexión Territorial</h3>
+                        <p>Crear una red de conocimiento que vincule oficios, lugares y personas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="como-funciona" style="background: white;">
+        <div class="container">
+            <h2>Cómo Funciona el Mapa</h2>
+            <div class="how-text">
+                <p><strong>📍 Recopilación Colaborativa:</strong> Cualquier persona puede contribuir añadiendo información sobre artesanías y oficios que conozca.</p>
+                <p><strong>🗺️ Puntos Geolocalizados:</strong> Cada artesanía u oficio se ubica en el mapa con sus coordenadas exactas o aproximadas.</p>
+                <p><strong>📝 Fichas Detalladas:</strong> Cada punto incluye información completa: nombre del oficio, descripción, historia, estado actual (activo/desaparecido).</p>
+                <p><strong>📸 Contenido Multimedia:</strong> Se pueden añadir fotografías, relatos orales, documentos históricos y testimonios.</p>
+                <p><strong>⏳ Registro de Oficios Desaparecidos:</strong> El mapa también documenta oficios que ya no existen, preservando su memoria.</p>
+                <p><strong>🔍 Búsqueda y Filtros:</strong> Los usuarios pueden explorar el mapa por tipo de oficio, ubicación, época o estado.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="mapa">
+        <div class="container">
+            <h2>Explora el Mapa</h2>
+            <div id="map"></div>
+            <p style="text-align: center; margin-top: 1rem; font-style: italic; color: var(--color-secondary);">
+                El mapa está listo para recibir contribuciones. ¡Ayúdanos a llenarlo de historias!
+            </p>
+        </div>
+    </section>
+
+    <section class="cta-section" id="participa">
+        <div class="container">
+            <h2>Participa en el Mapa</h2>
+            <p style="font-size: 1.2rem; margin: 1.5rem 0;">¿Conoces alguna artesanía u oficio tradicional en tu pueblo o región?</p>
+            <p style="font-size: 1.1rem; margin-bottom: 1rem;">Tu aporte es fundamental para preservar nuestra memoria colectiva</p>
+            <a href="mailto:contacto@craftmapship.org?subject=Contribución al mapa" class="cta-button">Envía tu Contribución</a>
+            <p style="font-size: 0.95rem; margin-top: 2rem; opacity: 0.9;">
+                También puedes enviarnos información por correo postal, llamada telefónica o cualquier otro medio que te resulte cómodo.
+            </p>
+        </div>
+    </section>
+
+    <section id="ejemplos">
+        <div class="container">
+            <h2>Ejemplos de Artesanías y Oficios</h2>
+            <p style="text-align: center; max-width: 800px; margin: 1rem auto 3rem;">
+                El mapa incluye una gran diversidad de oficios tradicionales, desde los que aún perviven hasta aquellos que ya forman parte de nuestra historia:
+            </p>
+            <div class="row g-4">
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">🏺</div>
+                        <h3>Alfarería</h3>
+                        <p>Elaboración de cerámica y objetos de barro</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">🧺</div>
+                        <h3>Cestería</h3>
+                        <p>Tejido de cestas y objetos con fibras vegetales</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">⚒️</div>
+                        <h3>Herrería</h3>
+                        <p>Forja y trabajo del hierro</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">🪵</div>
+                        <h3>Carpintería</h3>
+                        <p>Trabajo tradicional de la madera</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">🧵</div>
+                        <h3>Tejeduría</h3>
+                        <p>Tejido tradicional de telas y tapices</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">👞</div>
+                        <h3>Zapatería Artesanal</h3>
+                        <p>Elaboración de calzado a mano</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">🔔</div>
+                        <h3>Campanería</h3>
+                        <p>Fundición de campanas</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">🪨</div>
+                        <h3>Cantería</h3>
+                        <p>Labra de piedra para construcción</p>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="craft-card">
+                        <div class="craft-icon">📜</div>
+                        <h3>Oficios Desaparecidos</h3>
+                        <p>Sereno, aguador, farolero, pregonero...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="sobre" style="background: white;">
+        <div class="container">
+            <h2>Sobre el Proyecto</h2>
+            <div class="about-content">
+                <p><strong>CraftMAPShip</strong> es un proyecto desarrollado en el marco del taller <strong>"Datos para la Acción"</strong>, una iniciativa que explora el potencial de los datos abiertos y la cartografía colaborativa como herramientas para el activismo social y la preservación cultural.</p>
+
+                <p>El taller "Datos para la Acción" promueve el uso crítico y creativo de datos para generar impacto social positivo, combinando metodologías de investigación participativa con herramientas digitales accesibles.</p>
+
+                <p><strong>Contacto:</strong> Para más información sobre el proyecto, colaboraciones o prensa, puedes escribir a <a href="mailto:contacto@craftmapship.org" style="color: var(--color-primary); font-weight: bold;">contacto@craftmapship.org</a></p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div>
+                <h3>Contacto</h3>
+                <p>Email: <a href="mailto:contacto@craftmapship.org">contacto@craftmapship.org</a></p>
+                <p>Twitter: <a href="#">@CraftMAPShip</a></p>
+            </div>
+            <div>
+                <h3>Proyecto</h3>
+                <p><a href="#">Taller Datos para la Acción</a></p>
+                <p><a href="#">Repositorio en GitHub</a></p>
+            </div>
+            <div>
+                <h3>Licencia</h3>
+                <p>Datos bajo licencia <strong>CC BY-SA 4.0</strong></p>
+                <p>Código abierto y reutilizable</p>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>© 2025 CraftMAPShip - Un proyecto de cartografía colaborativa para preservar el patrimonio artesanal</p>
+        </div>
+    </footer>
+
+    {{ pueblos_data|json_script:"pueblos-data" }}
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Navegación con efecto scroll
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scroll para enlaces de navegación
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offsetTop = target.offsetTop - 80;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Animación de aparición de secciones
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInSection 0.8s ease forwards';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+
+
+        // Efecto hover en cards
+        document.querySelectorAll('.objective-card, .craft-item').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.02)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+<script>
+        const map = L.map('map').setView([43.197765817580006, -2.792462750259457], 9);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // FUNCIONES DE ESTILO Y POPUP
+        function getColor(d) {
+            return d > 10 ? '#800026' :
+                   d > 5  ? '#BD0026' :
+                   d > 2  ? '#E31A1C' :
+                   d > 0  ? '#FC4E2A' :
+                   d > -2 ? '#FD8D3C' :
+                   d > -5 ? '#FEB24C' :
+                   d > -10? '#FED976' :
+                            '#FFEDA0';
+        }
+
+        function style(feature) {
+            return {
+                fillColor: getColor(feature.properties.pob_14_23),
+                weight: 1,
+                opacity: 1,
+                color: 'white',
+                fillOpacity: 0.7
+            };
+        }
+
+        function onEachFeature(feature, layer) {
+            layer.bindPopup(
+                `<strong>${feature.properties.nombre}</strong><br>` +
+                `Población 2014: ${feature.properties.pob_14}<br>` +
+                `Población 2023: ${feature.properties.pob_23}<br>` +
+                `Variación: ${feature.properties.pob_14_23.toFixed(2)}%`
+            );
+        }
+
+        // --------------------------------------------
+        //   CAPAS POR RANGOS DE VARIACIÓN
+        // --------------------------------------------
+        const rangoFiles = {
+            "Decrece > -10%": "{% static 'data/datosaccion/variacion_pob_2014_2023/rango_neg_mas_10.geojson' %}",
+            "-10% a 0%": "{% static 'data/datosaccion/variacion_pob_2014_2023/rango_neg_10_a_0.geojson' %}",
+            "0% a +10%": "{% static 'data/datosaccion/variacion_pob_2014_2023/rango_cero_a_10.geojson' %}",
+            "+10% a +30%": "{% static 'data/datosaccion/variacion_pob_2014_2023/rango_mas_10_30.geojson' %}",
+            "Más de +30%": "{% static 'data/datosaccion/variacion_pob_2014_2023/rango_mas_30.geojson' %}"
+        };
+
+        const overlays = {};     // aquí se guardan las capas Leaflet
+        const loaded = {};       // para no volver a cargarlas
+
+        function loadRange(name, url) {
+            return fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    const layer = L.geoJSON(data, {
+                        style: style,
+                        onEachFeature: onEachFeature
+                    });
+                    overlays[name] = layer;
+                    loaded[name] = true;
+                    layer.addTo(map);
+                });
+        }
+
+        // Control de capas
+        const control = L.control.layers(null, null, {collapsed:false}).addTo(map);
+
+        // Añadir rangos al control pero sin cargarlos aún
+        Object.keys(rangoFiles).forEach(name => {
+            control.addOverlay(L.layerGroup(), name);
+        });
+
+        // Cuando activas/desactivas una capa
+        map.on("overlayadd", e => {
+            console.log("overlayadd", e)
+            const name = e.name;
+            loadRange(name, rangoFiles[name]);
+        });
+
+        map.on("overlayremove", e => {
+            console.log("overlayremove", e)
+            if (overlays[e.name]) {
+                map.removeLayer(overlays[e.name]);
+            }
+        });
+
+        // --------------------------------------------
+        //         CAPA DE ARTESANOS DE BIZKAIA
+        // --------------------------------------------
+        const artesanosUrl = "{% static 'data/datosaccion/artesanos_bizkaia.geojson' %}";
+        
+        fetch(artesanosUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('Error al cargar los datos de artesanos');
+                return response.json();
+            })
+            .then(data => {
+                L.geoJSON(data, {
+                    onEachFeature: function (feature, layer) {
+                        if (feature.properties) {
+                            let popupContent = `<strong>${feature.properties.pueblo}</strong>`;
+                            if (feature.properties.oficio) {
+                                popupContent += `<br>Oficio: ${feature.properties.oficio}`;
+                            }
+                            layer.bindPopup(popupContent);
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error(error));
+        
+        // --------------------------------------------
+        //         CÍRCULOS DE PUEBLOS
+        // --------------------------------------------
+        const pueblosData = JSON.parse(document.getElementById('pueblos-data').textContent);
+
+        function getRadius(num) {
+            // Usamos una escala logarítmica para manejar mejor los valores extremos.
+            // Math.log1p(x) es equivalente a Math.log(1 + x)
+            return 8 + 5 * Math.log1p(num);
+        }
+
+        function getColorPueblos(num) {
+            return num > 10 ? '#08306b' :
+                   num > 5  ? '#08519c' :
+                   num > 2  ? '#2171b5' :
+                   num > 0  ? '#4292c6' :
+                              '#6baed6';
+        }
+
+        pueblosData.forEach(pueblo => {
+            if (pueblo.latitud && pueblo.longitud) {
+                const num = pueblo.numero_artesanos;
+                const size = getRadius(num) * 2;
+                const icon = L.divIcon({
+                    className: 'circle-icon',
+                    html: `<div style="background-color: ${getColorPueblos(num)}; width: ${size}px; height: ${size}px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; border: 1px solid black;">${num}</div>`,
+                    iconSize: [size, size]
+                });
+
+                L.marker([pueblo.latitud, pueblo.longitud], { icon: icon })
+                    .addTo(map)
+                    .bindPopup(`<b>${pueblo.Pueblo}</b><br>Artesanos: ${num}`);
+            }
+        });
+
+
+        // --------------------------------------------
+        //                LEYENDA
+        // --------------------------------------------
+        const legend = L.control({position: 'bottomright'});
+
+        legend.onAdd = function() {
+            const div = L.DomUtil.create('div', 'legend');
+            const grades = [-Infinity, -10, -5, -2, 0, 2, 5, 10];
+            const labels = [];
+
+            for (let i = 0; i < grades.length; i++) {
+                const from = grades[i];
+                const to = grades[i + 1];
+                labels.push(
+                    '<i style="background:' + getColor(from + 0.01) + '"></i> ' +
+                    from + (to ? '&ndash;' + to : '+')
+                );
+            }
+            div.innerHTML = labels.join('<br>');
+            return div;
+        };
+
+        legend.addTo(map);
+    </script>
+</body>
+</html>
