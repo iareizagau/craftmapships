@@ -1,49 +1,113 @@
-# Documentación del Proyecto: Datos para la Acción
+# CraftMapShips
 
-Este documento detalla la estructura y el propósito de los datos y scripts utilizados en la aplicación `datosaccion`.
+CraftMapShips es una aplicación web desarrollada con Django que visualiza datos de artesanos por localidad. El proyecto utiliza la librería `pandas` para procesar un archivo CSV y mostrar la información en una plantilla HTML.
 
-## 1. Datos Utilizados
+## Características
 
-Los datos de la aplicación se encuentran en el directorio `static/data/datosaccion/`.
+- Visualización de datos de artesanos.
+- Procesamiento de datos desde un archivo CSV.
+- Estructura de proyecto Django escalable.
 
-### Archivos Principales:
+## Tecnologías Utilizadas
 
-*   **`artesanos_bizkaia.csv`**:
-    *   **Descripción**: Archivo CSV original obtenido mediante scraping. Contiene el listado de artesanos de Bizkaia con detalles sobre su oficio, pueblo y otros datos de contacto.
-    *   **Uso**: Es la fuente de datos primaria para el resto del procesamiento.
+- **Backend:** Python, Django
+- **Procesamiento de Datos:** pandas
+- **Frontend:** HTML, (potencialmente CSS y JavaScript)
+- **Base de Datos:** SQLite (configuración por defecto de Django)
 
-*   **`oficios_geocodificados.csv`**:
-    *   **Descripción**: Un archivo CSV intermedio generado por `excel2geojson.py`. Es una copia de `artesanos_bizkaia.csv` pero con dos columnas adicionales: `latitude` y `longitude`.
-    *   **Uso**: Sirve como paso previo para la creación del archivo `artesanos_bizkaia.geojson`.
+## Estructura del Proyecto
 
-*   **`artesanos_por_pueblo.csv`**:
-    *   **Descripción**: Archivo CSV generado por `Limpieza_agrupacion.py`. Agrupa a los artesanos por pueblo y cuenta cuántos hay en cada uno.
-    *   **Uso**: Se carga en la vista de Django para pasar al frontend los datos necesarios para visualizar los círculos en el mapa.
+El proyecto sigue una estructura estándar de Django, con una aplicación principal y directorios para plantillas y archivos estáticos.
 
-*   **`artesanos_bizkaia.geojson`**:
-    *   **Descripción**: Archivo GeoJSON generado a partir de `oficios_geocodificados.csv`. Contiene la información de los artesanos en un formato geográfico estándar.
-    *   **Uso**: Se carga directamente en el mapa de la página `home.html` para visualizar la ubicación de cada artesano individualmente.
+```
+craftmapships/
+├── apps/
+│   └── datosaccion/      # Aplicación principal para la visualización de datos
+│       ├── migrations/
+│       ├── templates/
+│       │   └── datosaccion/
+│       │       └── home.html # Plantilla para la página principal
+│       ├── __init__.py
+│       ├── admin.py
+│       ├── apps.py
+│       ├── models.py
+│       ├── tests.py
+│       ├── urls.py
+│       └── views.py
+├── craftmapships/        # Directorio de configuración del proyecto
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── static/
+│   └── data/
+│       └── datosaccion/
+│           └── artesanos_por_pueblo.csv # Archivo de datos
+├── templates/            # Directorio de plantillas globales
+├── .gitignore
+├── manage.py
+└── README.md
+```
 
-*   **`variacion_pob_2014_2023/`**:
-    *   **Descripción**: Este directorio contiene varios archivos GeoJSON que segmentan los municipios según la variación de su población entre 2014 y 2023.
-    *   **Uso**: Estos archivos se cargan en el mapa como capas superpuestas para visualizar tendencias demográficas.
+## Instalación y Puesta en Marcha
 
-## 2. Scripts de Procesamiento
+Sigue estos pasos para configurar y ejecutar el proyecto en tu entorno local.
 
-Los scripts utilizados para generar y limpiar los datos se encuentran en `scripts/datosaccion/`.
+### 1. Clonar el Repositorio
 
-### Archivos de Script:
+```sh
+git clone https://github.com/iareizagau/craftmapships.git
+cd craftmapships
+```
 
-*   **`scraping_artesanos.py`**:
-    *   **Descripción**: Script de Python que realiza web scraping para extraer la información de los artesanos y la guarda en `artesanos_bizkaia.csv`.
-    *   **Uso**: Es el primer paso para obtener los datos crudos.
+### 2. Crear y Activar un Entorno Virtual
 
-*   **`excel2geojson.py`**:
-    *   **Descripción**: Script de Python que realiza dos funciones clave:
-        1.  **Geocodificación (`get_lat_lng`)**: Lee `artesanos_bizkaia.csv`, utiliza `geopy` para obtener las coordenadas (latitud y longitud) de cada pueblo y guarda el resultado en `oficios_geocodificados.csv`.
-        2.  **Generación de GeoJSON (`generate_geojson`)**: Lee `oficios_geocodificados.csv` y lo convierte al formato GeoJSON (`artesanos_bizkaia.geojson`).
-    *   **Uso**: Procesa los datos iniciales para prepararlos para su visualización en el mapa.
+Es una buena práctica utilizar un entorno virtual para gestionar las dependencias del proyecto.
 
-*   **`Limpieza_agrupacion.py`**:
-    *   **Descripción**: Script de Python que lee el archivo `oficios_geocodificados.csv`, agrupa los artesanos por pueblo, cuenta el número de artesanos en cada uno y genera el archivo `artesanos_por_pueblo.csv`.
-    *   **Uso**: Prepara los datos agregados necesarios para la visualización de los círculos en el mapa.
+```sh
+# Crear el entorno virtual
+python -m venv venv
+
+# Activar en Windows
+venv\Scripts\activate
+
+# Activar en macOS/Linux
+source venv/bin/activate
+```
+
+### 3. Instalar Dependencias
+
+Instala las librerías necesarias. Primero, crea un archivo `requirements.txt` con el siguiente contenido:
+
+```txt
+Django
+pandas
+```
+
+Luego, instala las dependencias:
+
+```sh
+pip install -r requirements.txt
+```
+
+### 4. Ejecutar las Migraciones
+
+Aunque actualmente no hay modelos personalizados, es una buena práctica ejecutar las migraciones iniciales de Django.
+
+```sh
+python manage.py migrate
+```
+
+### 5. Iniciar el Servidor de Desarrollo
+
+Ahora puedes iniciar el servidor de desarrollo de Django.
+
+```sh
+python manage.py runserver
+```
+
+Abre tu navegador y visita [http://127.0.0.1:8000/](http://127.0.0.1:8000/) para ver la aplicación en funcionamiento.
+
+## Uso
+
+La página principal de la aplicación muestra los datos procesados del archivo `artesanos_por_pueblo.csv`. Puedes modificar este archivo o la vista en `apps/datosaccion/views.py` para cambiar la lógica de visualización de datos.
